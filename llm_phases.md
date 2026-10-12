@@ -1,5 +1,92 @@
-Phase 1: Tech Stack & Architecture DesignBefore writing code, your team needs to agree on the infrastructure and core framework. For building a custom model that integrates cleanly with the Hugging Face ecosystem, standardizing on PyTorch is mandatory.Core Language: Python 3.10+Deep Learning Framework: PyTorch (with CUDA support for NVIDIA GPUs)Hugging Face Ecosystem: transformers, datasets, tokenizers, and huggingface_hubUI & Deployment: Gradio or Streamlit, hosted on Hugging Face Spaces   Hardware Requirements: At least 1-2 cloud GPUs (e.g., Google Colab Pro, Lambda Labs, or AWS/GCP with NVIDIA A10G/A100 or T4 for prototyping).Phase 2: The End-to-End Engineering RoadmapStep 1: Data Gathering and TokenizationComputers don't read words; they read numbers. You must build or train a tokenizer to break text down into tokens and map them to integers.Task: Implement Byte-Pair Encoding (BPE) or use Hugging Face’s tokenizers library to train a custom tokenizer on your text corpus.   Data Sources: Start small for debugging (e.g., TinyShakespeare or WikiText), then scale to larger pretraining corpora like FineWeb-Edu or OpenWebText depending on your compute budget.Deliverable: A functional tokenizer script that converts raw text strings to token ID tensors and back.Step 2: Building the GPT Architecture from Scratch (PyTorch)Instead of importing a pre-made transformer, code the decoder-only transformer architecture line-by-line to master its inner mechanics. Implement these core modules as PyTorch nn.Module classes:Embeddings: Token embeddings + Absolute or Rotary Positional Embeddings (RoPE).Causal Multi-Head Self-Attention: The mechanism allowing tokens to look at prior context while masking future tokens (preventing "cheating").   Normalization & Feed-Forward Networks: LayerNorm (or RMSNorm) and SwiGLU/GELU activation feed-forward layers.   Transformer Block Stack: Stacking 6 to 12 identical decoder blocks with residual (skip) connections.Language Model Head: A linear projection mapping hidden states back to vocabulary logits.Step 3: Unsupervised Pretraining (Next-Token Prediction)This is where your model learns grammar, facts, and reasoning by predicting the next word in massive streams of unlabelled text.Loss Function: Cross-Entropy Loss.   Optimizer: AdamW with weight decay and a learning rate scheduler (Cosine Annealing with warmup).Training Loop: Write a data loader that feeds chunks of text (context windows, e.g., 512 or 1024 tokens) into your model, calculates loss, backpropagates gradients, and updates weights.Tracking: Monitor training and validation loss/perplexity. Once loss plateaus, your base model is ready.   Step 4: Instruction Fine-Tuning (SFT)A raw pretrained model is just a text completer; it completes prompts rather than answering questions. To make it behave like ChatGPT, you must fine-tune it on conversational data.Dataset Format: Convert instruction-response pairs into chat templates (e.g., standard Alpaca format or ShareGPT JSON format):JSON{
+Phase 1: 
+Tech Stack & Architecture DesignBefore writing code, your team needs to agree on the infrastructure and core framework. 
+
+For building a custom model that integrates cleanly with the Hugging Face ecosystem, standardizing on PyTorch is mandatory.
+
+Core Language: Python 3.10+Deep Learning Framework: PyTorch (with CUDA support for NVIDIA GPUs)
+Hugging Face Ecosystem: transformers, datasets, tokenizers, and huggingface_hubUI & 
+Deployment: Gradio or Streamlit, hosted on Hugging Face Spaces   
+Hardware Requirements: At least 1-2 cloud GPUs (e.g., Google Colab Pro, Lambda Labs, or AWS/GCP with NVIDIA A10G/A100 or T4 for prototyping).
+
+Phase 2: The End-to-End Engineering RoadmapStep 
+
+1: Data Gathering and TokenizationComputers don't read words; they read numbers. You must build or train a tokenizer to break text down into tokens and map them to integers.
+
+Task: 
+Implement Byte-Pair Encoding (BPE) or use Hugging Face’s tokenizers library to train a custom tokenizer on your text corpus.   
+
+Data Sources: 
+
+Start small for debugging (e.g., TinyShakespeare or WikiText), then scale to larger pretraining corpora like FineWeb-Edu or OpenWebText depending on your compute budget.
+
+Deliverable: 
+
+A functional tokenizer script that converts raw text strings to token ID tensors and back.
+
+Step 2: 
+Building the GPT Architecture from Scratch (PyTorch)Instead of importing a pre-made transformer, code the decoder-only transformer architecture line-by-line to master its inner mechanics. Implement these core modules as PyTorch nn.
+
+Module classes:Embeddings: 
+
+Token embeddings + Absolute or Rotary Positional Embeddings (RoPE).
+
+Causal Multi-Head Self-Attention: 
+The mechanism allowing tokens to look at prior context while masking future tokens (preventing "cheating").   
+
+Normalization & Feed-Forward Networks: 
+LayerNorm (or RMSNorm) and SwiGLU/GELU activation feed-forward layers.   
+
+Transformer Block Stack: 
+Stacking 6 to 12 identical decoder blocks with residual (skip) connections.
+
+Language Model Head: 
+A linear projection mapping hidden states back to vocabulary logits.
+
+
+Step 3: 
+Unsupervised Pretraining (Next-Token Prediction)This is where your model learns grammar, facts, and reasoning by predicting the next word in massive streams of unlabelled text.
+
+Loss Function: 
+Cross-Entropy Loss.   
+
+Optimizer: 
+AdamW with weight decay and a learning rate scheduler (Cosine Annealing with warmup).
+
+Training Loop: 
+Write a data loader that feeds chunks of text (context windows, e.g., 512 or 1024 tokens) into your model, calculates loss, backpropagates gradients, and updates weights.Tracking: Monitor training and validation loss/perplexity. 
+Once loss plateaus, your base model is ready.   
+
+Step 4: 
+Instruction Fine-Tuning (SFT)A raw pretrained model is just a text completer; it completes prompts rather than answering questions. 
+To make it behave like ChatGPT, you must fine-tune it on conversational data.Dataset Format: Convert instruction-response pairs into chat templates 
+
+(e.g., standard Alpaca format or ShareGPT JSON format):
+JSON{
   "instruction": "Explain gravity in one sentence.",
   "output": "Gravity is a fundamental physical force that attracts objects with mass toward each other."
 }
-Fine-Tuning Execution: Use standard fine-tuning or parameter-efficient methods like LoRA (Low-Rank Adaptation) via Hugging Face peft to adapt the base model weights efficiently on a single GPU.Step 5: Alignment & Text Generation StrategyImplement decoding strategies for inference so users can chat with the model smoothly:Sampling Methods: Temperature scaling, Top-k, and Top-p (nucleus) sampling to control creativity vs. determinism.KV-Caching: Optimize text generation speed by caching key/value states of previous tokens.   Step 6: Hugging Face Integration & DeploymentTo make your model accessible to anyone (like models on Hugging Face), map your custom model architecture to the Hugging Face PreTrainedModel interface.Model Serialization: Save model weights (pytorch_model.bin or model.safetensors) alongside your tokenizer and config files (config.json).Hub Upload: Push your model repository directly to the Hugging Face Hub using huggingface_hub.Web UI: Build a clean chat interface using Gradio and deploy it live as a public Hugging Face Space.Phase 3: Suggested Team Division of Labor (CSE Project Group)For a smooth workflow, split responsibilities among your engineering team members:Data Engineer: Handles data collection pipelines, cleaning scripts, and the BPE Tokenizer training.Core ML / Architect: Codes the PyTorch Transformer blocks, attention mechanisms, and model configuration files.   Training & Ops Engineer: Manages GPU clusters, writes the pretraining/SFT training loops, monitors loss curves, and handles checkpointing.Integration & Frontend Engineer: Manages Hugging Face Hub conversion, builds the Gradio chat application, and handles final deployment.
+
+Fine-Tuning Execution: 
+Use standard fine-tuning or parameter-efficient methods like LoRA (Low-Rank Adaptation) via Hugging Face peft to adapt the base model weights efficiently on a single GPU.
+
+Step 5: 
+Alignment & Text Generation StrategyImplement decoding strategies for inference so users can chat with the model smoothly:Sampling Methods: Temperature scaling, Top-k, and Top-p (nucleus) sampling to control creativity vs. determinism.KV-Caching: Optimize text generation speed by caching key/value states of previous tokens.   
+
+Step 6: 
+Hugging Face Integration & DeploymentTo make your model accessible to anyone (like models on Hugging Face), map your custom model architecture to the Hugging Face PreTrainedModel interface.
+
+Model Serialization: 
+Save model weights (pytorch_model.bin or model.safetensors) alongside your tokenizer and config files (config.json).Hub Upload: Push your model repository directly to the Hugging Face Hub using huggingface_hub.
+
+Web UI: 
+Build a clean chat interface using Gradio and deploy it live as a public Hugging Face Space.
+
+
+Phase 3: 
+Suggested Team Division of Labor (CSE Project Group)For a smooth workflow, split responsibilities among your engineering team members:
+
+Data Engineer: 
+Handles data collection pipelines, cleaning scripts, and the BPE Tokenizer training.Core ML / 
+
+Architect: 
+Codes the PyTorch Transformer blocks, attention mechanisms, and model configuration files.   Training & Ops Engineer: Manages GPU clusters, writes the pretraining/SFT training loops, monitors loss curves, and handles checkpointing.Integration & Frontend Engineer: Manages Hugging Face Hub conversion, builds the Gradio chat application, and handles final deployment.
